@@ -1,6 +1,7 @@
 import os
 # [수정] LangChain의 ChatOpenAI 클래스를 임포트합니다.
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic
 # GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
@@ -11,7 +12,8 @@ from dotenv import load_dotenv
 # --- 0. 환경 설정: API 키 로드 ---
 load_dotenv()
 # OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 # CLAUDE: Claude API 키를 설정해야 합니다.
 # CLAUDE: os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY", "YOUR_CLAUDE_KEY")
 # GEMINI: Google API 키를 설정해야 합니다.
@@ -19,8 +21,7 @@ os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 
 # --- 1. LLM(두뇌) 정의 ---
 # 학생의 복잡한 학습 이력과 규칙을 정확히 따르도록 gpt-4o와 같은 고성능 모델을 사용합니다.
-llm = ChatOpenAI(model="gpt-5.1", reasoning={ "effort": "low" })
-# CLAUDE: llm = ChatAnthropic(model="claude-sonnet-4-5-20250929", temperature=0.3)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
 # GEMINI: llm = ChatGoogleGenerativeAI(model="gemini-3.0", temperature=0.3)
 
 def get_ai_response(prompt: str) -> str:

@@ -1,7 +1,8 @@
 import os
 import logging
 # [수정] LangChain의 ChatOpenAI 클래스를 임포트합니다.
-from langchain_openai import ChatOpenAI 
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI 
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic
 # GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
@@ -13,7 +14,8 @@ from dotenv import load_dotenv
 # --- 0. 환경 설정: API 키 ---
 # [수정] .env 파일에서 키를 로드하고 환경 변수로 설정합니다.
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 
 # [수정] LangChain의 ChatOpenAI 클래스를 LLM(두뇌)으로 초기화합니다.
 # 요청하신대로 model="gpt-4o"로 변경합니다.

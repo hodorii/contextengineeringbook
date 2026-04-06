@@ -1,14 +1,15 @@
 import os
 import json
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic
 # GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
 # GEMINI: from langchain_google_genai import ChatGoogleGenerativeAI
 
 # [수정] LangChain 0.1.0+ 버전에서는 에이전트 생성을 위한 핵심 모듈들이 분리되었습니다.
-from langchain.agents import tool, AgentExecutor, create_openai_tools_agent
+from langchain.agents import tool, AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 
@@ -106,7 +107,7 @@ def context_synthesizer(customer_context: str, knowledge_context: str, communica
 class CustomerServiceAgent:
     def __init__(self):
         # [수정] 요청하신대로 LLM (두뇌)을 ChatOpenAI(gpt-4o)로 변경
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0)
+        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
         # CLAUDE: self.llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
         # GEMINI: self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
         
@@ -137,7 +138,7 @@ class CustomerServiceAgent:
         ])
         
         # 3.2. 에이전트 로직 생성
-        agent = create_openai_tools_agent(self.llm, customer_service_tools, prompt)
+        agent = create_tool_calling_agent(self.llm, customer_service_tools, prompt)
         
         # 3.3. 에이전트 실행기 생성 (AgentExecutor)
         agent_executor = AgentExecutor(

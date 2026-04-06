@@ -3,13 +3,14 @@ import shutil
 import json
 import numpy as np
 import chromadb # [핵심 수정] 'chromadb' 네이티브 클라이언트 임포트
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic, AnthropicEmbeddings
 # GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
 # GEMINI: from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
-from langchain.agents import tool, AgentExecutor, create_openai_tools_agent
+from langchain.agents import tool, AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 from langchain_community.vectorstores import Chroma
@@ -18,7 +19,8 @@ from dotenv import load_dotenv
 
 # --- 0. 환경 설정: API 키 로드 ---
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 # [수정] 임베딩 모델 환경 변수 (OpenAIEmbeddings에서 model 파라미터가 변경됨)
 # text-embedding-3-small은 1536차원이 기본입니다.
 os.environ["EMBEDDING_MODEL_NAME"] = os.getenv("EMBEDDING_MODEL_NAME", "text-embedding-3-small")
@@ -244,7 +246,7 @@ class ExperienceDB:
 # --- 4. 코드 리팩터링 에이전트 ---
 class CodeRefactoringAgent:
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0)
+        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
         self.embedding_model = os.environ["EMBEDDING_MODEL_NAME"]
         self.embedding_dim = int(os.environ["EMBEDDING_MODEL_DIM"])
         self.embeddings = OpenAIEmbeddings(
@@ -299,7 +301,7 @@ ReadFile, WriteFile 도구를 사용하여 문제를 해결하세요.
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ])
         
-        agent = create_openai_tools_agent(self.llm, developer_tools, prompt)
+        agent = create_tool_calling_agent(self.llm, developer_tools, prompt)
         agent_executor = AgentExecutor(
             agent=agent,
             tools=developer_tools,

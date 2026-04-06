@@ -1,9 +1,5 @@
 import os
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings # [수정] OpenAI -> ChatOpenAI
-# CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
-# CLAUDE: from langchain_anthropic import ChatAnthropic, AnthropicEmbeddings
-# GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
-# GEMINI: from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from llm_proxy import LLMProxy, EmbeddingProxy
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -11,10 +7,12 @@ from langchain.chains import RetrievalQA
 
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 # CLAUDE: Claude API 키를 설정해야 합니다.
 # CLAUDE: os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY", "YOUR_CLAUDE_KEY")
 # GEMINI: Google API 키를 설정해야 합니다.
@@ -62,47 +60,51 @@ split_docs = text_splitter.split_text(product_manual_text)
 print(f"제품 매뉴얼이 {len(split_docs)}개의 정보 조각(청크)으로 나뉘었습니다.")
 
 # 2. 쪼갠 청크들을 임베딩하여 벡터 DB에 저장합니다.
-embeddings = OpenAIEmbeddings()
-# CLAUDE: Anthropic 임베딩 모델로 변경합니다.
-# CLAUDE: embeddings = AnthropicEmbeddings()
-# GEMINI: Google 임베딩 모델로 변경합니다. (모델명 지정 필수)
-# GEMINI: embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-
-
-vector_db = FAISS.from_documents(split_docs, embeddings)
+llm_proxy = LLMProxy(provider="google")
+embedding_proxy = EmbeddingProxy(provider="huggingface")
+vector_db = FAISS.from_documents(split_docs, embedding_proxy.embeddings)
 
 print("지식 창고(벡터 DB)가 성공적으로 생성되었습니다.")
 
 # 3. RAG 체인을 생성합니다. 이 체인이 '제품 전문가'의 역할을 수행합니다.
 product_expert_chain = RetrievalQA.from_chain_type(
-    llm=ChatOpenAI(model=”gpt-5.1”, reasoning={ "effort": "none" }),
-    
-    # CLAUDE: LLM 모델을 ChatAnthropic으로 변경합니다. (모델명 지정 필수)
-    # CLAUDE: llm=ChatAnthropic(model=”claude-sonnet-4-5-20250929”,
-temperature=0),
-    # GEMINI: LLM 모델을 ChatGoogleGenerativeAI로 변경합니다. (모델명 지정 필수)
-    # GEMINI: llm=ChatGoogleGenerativeAI(model=”gemini-3.0”, temperature=0),
-    
+    llm=llm_proxy.llm,
     chain_type="stuff",
     retriever=vector_db.as_retriever(),
-    return_source_documents=True # 답변의 근거가 된 원본 문서를 함께 반환하도록 설정
+    return_source_documents=True,  # 답변의 근거가 된 원본 문서를 함께 반환하도록 설정
 )
 # CLAUDE/GEMINI: LangChain의 RetrievalQA 체인 구성 코드는 모델에 상관없이 동일합니다.
 
+
 # --- 4. RAG 체인 실행 테스트 ---
+def format_sources(source_docs):
+    """검색된 출처 문서들을 보기 좋게 포맷팅합니다."""
+    sources = []
+    for i, doc in enumerate(source_docs, 1):
+        header = doc.metadata.get("Header 1") or doc.metadata.get(
+            "Header 2", "알 수 없는 섹션"
+        )
+        content = doc.page_content[:100].replace("\n", " ")
+        sources.append(f"  [{i}] {header}: {content}...")
+    return "\n".join(sources)
+
+
 if __name__ == "__main__":
     print("\nRAG 시스템이 준비되었습니다. 질문을 입력하세요.\n")
-    
+
     query1 = "AI 절전 모드는 어떻게 켜나요?"
     answer1 = product_expert_chain.invoke(query1)
-    
-    print(f"질문 1: {query1}")
-    print(f"답변 1: {answer1['result']}")
-    print(f"출처 문서: {answer1['source_documents'][0].page_content[:50]}...\n")
+
+    print(f"❓ 질문: {query1}")
+    print(f"✅ 답변: {answer1['result']}")
+    print(f"📚 참조 출처:")
+    print(format_sources(answer1["source_documents"]))
+    print()
 
     query2 = "리모컨이 안 먹혀요"
     answer2 = product_expert_chain.invoke(query2)
-    
-    print(f"질문 2: {query2}")
-    print(f"답변 2: {answer2['result']}")
-    print(f"출처 문서: {answer2['source_documents'][0].page_content[:50]}...\n")
+
+    print(f"❓ 질문: {query2}")
+    print(f"✅ 답변: {answer2['result']}")
+    print(f"📚 참조 출처:")
+    print(format_sources(answer2["source_documents"]))

@@ -1,5 +1,6 @@
 import os
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic, AnthropicEmbeddings
 # GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
@@ -16,7 +17,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 # CLAUDE: Claude API 키를 설정해야 합니다.
 # CLAUDE: os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY", "YOUR_CLAUDE_KEY")
 # GEMINI: Google API 키를 설정해야 합니다.

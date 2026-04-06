@@ -14,7 +14,7 @@ anthropic>=0.34.0
 google-generativeai>=0.8.0
 
 # --- Vector DBs & Tools ---
-chromadb>=0.5.0
+langchain-chroma>=0.1.0
 faiss-cpu>=1.8.0
 pymed>=0.8.9
 tiktoken>=0.7.0

@@ -1,9 +1,8 @@
 import os
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic
-# GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
-# GEMINI: from langchain_google_genai import ChatGoogleGenerativeAI
 
 # .env 파일 로드를 위한 라이브러리 임포트
 from dotenv import load_dotenv
@@ -11,24 +10,19 @@ from dotenv import load_dotenv
 # --- 0. 환경 설정: API 키 ---
 # .env 파일에서 키를 로드하고 환경 변수로 설정합니다.
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
 
-# LangChain의 ChatOpenAI 클래스를 LLM(두뇌)으로 초기화합니다.
-llm = ChatOpenAI(
-    model="gpt-5.1",
-    reasoning={ "effort": "low" }, # 추론강도 low(낮음) | medium(중간) | high(높음)
-    max_tokens=2000
-)
+# API 키 미설정 시 테스트(모의) 모드로 동작합니다.
+API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# CLAUDE: 클라이언트 초기화 방식이 다릅니다. (LangChain 표준)
-# CLAUDE: os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY", "YOUR_CLAUDE_KEY")
+# LangChain의 ChatGoogleGenerativeAI 클래스를 LLM(두뇌)으로 초기화합니다.
+llm = None
+llm = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash", temperature=0.7, max_output_tokens=2000
+    )
+
+# OpenAI: llm = ChatOpenAI(model="gpt-5.1", reasoning={ "effort": "low" }, max_tokens=2000)
 # CLAUDE: llm = ChatAnthropic(model="claude-sonnet-4-5-20250929", temperature=0.7)
-
-# GEMINI: 클라이언트가 아닌, 라이브러리 자체를 설정(configure)합니다. (LangChain 표준)
-# GEMINI: import google.generativeai as genai
-# GEMINI: os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
-# GEMINI: genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-# GEMINI: llm = ChatGoogleGenerativeAI(model="gemini-3.0", temperature=0.7)
 
 
 # --- 1. AI 모델과 상호작용하는 함수 정의 ---
@@ -43,15 +37,17 @@ def get_ai_response(messages: list) -> str:
         #       입력은 OpenAI API와 동일한 'messages' 리스트 형식을 사용합니다.
         response = llm.invoke(messages)
         # [수정] LangChain의 응답 객체에서 .content 속성으로 텍스트를 추출합니다.
-        #return response.content.strip()
+        # return response.content.strip()
         if isinstance(response.content, list):
             # 리스트 일 경우
             # return "".join([str(block) for block in response.content]).strip()
             # 딕셔너리 구조일 경우 (예상)
-            return "".join([
-                block.get('text', '') if isinstance(block, dict) else str(block) 
-                for block in response.content
-            ]).strip()
+            return "".join(
+                [
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in response.content
+                ]
+            ).strip()
         else:
             # 문자열인 경우 기존대로 처리
             return response.content.strip()
@@ -63,9 +59,10 @@ def get_ai_response(messages: list) -> str:
         # --- GEMINI로 변경 시 (위 llm 객체만 변경하면, 이 함수는 수정 불필요) ---
         # GEMINI: response = llm.invoke(messages)
         # GEMINI: return response.content.strip()
-        
+
     except Exception as e:
         return f"API 호출 중 오류 발생: {e}"
+
 
 # --- 2. 컨텍스트가 없는 경우 (AI의 단기 기억상실증 발생) ---
 print("--- 컨텍스트가 없는 대화 ---")
@@ -87,7 +84,7 @@ question_2 = "그의 어머니는 어떤 분이야?"
 messages_2 = [{"role": "user", "content": question_2}]
 answer_2 = get_ai_response(messages_2)
 print(f"사용자: {question_2}")
-print(f"AI: {answer_2}\n") # AI는 '그'가 누구인지 되물을 가능성이 높음
+print(f"AI: {answer_2}\n")  # AI는 '그'가 누구인지 되물을 가능성이 높음
 
 # --- 3. 컨텍스트를 제공하는 경우 (대화 맥락 유지) ---
 print("--- 컨텍스트를 제공하는 대화 ---")
@@ -95,8 +92,8 @@ print("--- 컨텍스트를 제공하는 대화 ---")
 # 첫 번째 질문과 응답을 포함한 대화 기록 생성
 conversation_history = [
     {"role": "user", "content": question_1},
-    {"role": "assistant", "content": answer_1}, # 첫 번째 응답을 기록에 추가
-    {"role": "user", "content": question_2}     # 두 번째 질문 추가
+    {"role": "assistant", "content": answer_1},  # 첫 번째 응답을 기록에 추가
+    {"role": "user", "content": question_2},  # 두 번째 질문 추가
 ]
 # CLAUDE/GEMINI: 이 'conversation_history' 리스트를 만드는 로직은
 # CLAUDE/GEMINI: 플랫폼에 상관없이 동일하게 유지됩니다.
@@ -107,4 +104,4 @@ conversation_history = [
 # AI는 이전 대화를 통해 '그'가 '일론 머스크'임을 추론 가능
 answer_3_with_context = get_ai_response(conversation_history)
 print(f"사용자: {question_2}")
-print(f"AI: {answer_3_with_context}") # AI가 메이 머스크에 대해 답변할 가능성이 높음
+print(f"AI: {answer_3_with_context}")  # AI가 메이 머스크에 대해 답변할 가능성이 높음

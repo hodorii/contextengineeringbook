@@ -1,12 +1,12 @@
 import os
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+# OpenAI: from langchain_openai import ChatOpenAI
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic
-# GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
-# GEMINI: from langchain_google_genai import ChatGoogleGenerativeAI
 
 # [수정] LangChain 0.1.0+ 버전에서는 에이전트 생성을 위한 핵심 모듈들이 분리되었습니다.
-from langchain.agents import create_openai_tools_agent, AgentExecutor
+# Gemini와 같은 Tool Calling 모델을 위해 create_tool_calling_agent를 사용합니다.
+from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 from tools import developer_tools
@@ -14,17 +14,14 @@ from dotenv import load_dotenv
 
 # --- 0. 환경 설정: API 키 로드 ---
 load_dotenv()
-# OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
-# CLAUDE: Claude API 키를 설정해야 합니다.
-# CLAUDE: os.environ["ANTHROPIC_API_KEY"] = "YOUR_CLAUDE_KEY"
-# GEMINI: Google API 키를 설정해야 합니다.
-# GEMINI: os.environ["GOOGLE_API_KEY"] = "YOUR_GEMINI_KEY"
+# Google API 키 설정
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 
 # LLM (두뇌)
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
+# OpenAI: llm = ChatOpenAI(model="gpt-4o", temperature=0)
 # CLAUDE: llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
-# GEMINI: llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
 
 # Memory (기억)
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True) # [수정] return_messages=True 추가
@@ -72,9 +69,9 @@ def create_refactoring_agent(initial_context: str):
         MessagesPlaceholder(variable_name="agent_scratchpad"), # 에이전트의 '생각'이 담길 변수
     ])
     
-    # 2. LLM, 도구, 프롬프트를 사용하여 'OpenAI Tools Agent'를 생성합니다.
-    # 이 에이전트는 다중 인자 도구(write_file)를 완벽하게 지원합니다.
-    agent = create_openai_tools_agent(llm, developer_tools, prompt)
+    # 2. LLM, 도구, 프롬프트를 사용하여 에이전트를 생성합니다.
+    # create_tool_calling_agent는 Gemini 등 Tool Calling을 지원하는 모델에서 범용적으로 작동합니다.
+    agent = create_tool_calling_agent(llm, developer_tools, prompt)
     
     # 3. 'AgentExecutor'를 사용하여 에이전트를 실행할 수 있는 객체를 만듭니다.
     # 이것이 'initialize_agent'를 대체하는 현대적인 방식입니다.

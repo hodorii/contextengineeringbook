@@ -1,14 +1,14 @@
 import os
 import json
 import time
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+# OpenAI: from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 # CLAUDE: Claude를 사용하려면 'langchain_anthropic'에서 관련 클래스를 임포트해야 합니다.
 # CLAUDE: from langchain_anthropic import ChatAnthropic, AnthropicEmbeddings
-# GEMINI: Gemini를 사용하려면 'langchain_google_genai'에서 관련 클래스를 임포트해야 합니다.
-# GEMINI: from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
 # [수정] LangChain 0.1.0+ 버전에서는 에이전트 생성을 위한 핵심 모듈들이 분리되었습니다.
-from langchain.agents import tool, AgentExecutor, create_openai_tools_agent
+# Gemini와 같은 Tool Calling 모델을 위해 create_tool_calling_agent를 사용합니다.
+from langchain.agents import tool, AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 
@@ -21,22 +21,20 @@ from dotenv import load_dotenv
 
 # --- 0. 환경 설정: API 키 ---
 load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
-# CLAUDE: Claude API 키를 설정해야 합니다.
-# CLAUDE: os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY", "YOUR_CLAUDE_KEY")
-# GEMINI: Google API 키를 설정해야 합니다.
-# GEMINI: os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# Google API 키 설정
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_KEY")
+# OpenAI: os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "YOUR_API_KEY")
 
 # --- 1. 도구(Tools) 정의 ---
 
 # LLM, 임베딩, 벡터스토어를 전역 객체로 선언
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
+# OpenAI: llm = ChatOpenAI(model="gpt-4o", temperature=0)
 # CLAUDE: llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0)
-# GEMINI: llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=0)
 
-embeddings = OpenAIEmbeddings()
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+# OpenAI: embeddings = OpenAIEmbeddings()
 # CLAUDE: embeddings = AnthropicEmbeddings()
-# GEMINI: embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
 print("--- 1. 지식 베이스 초기화 중... ---")
 vector_db = Chroma(
@@ -130,8 +128,8 @@ def create_curator_agent_executor():
     ])
     
     # 2. 에이전트 로직 생성
-    # create_openai_tools_agent는 ChatModel과 다중 인자 도구를 지원합니다.
-    agent = create_openai_tools_agent(llm, curator_tools, prompt)
+    # create_tool_calling_agent는 Gemini와 같은 모델에서 도구 호출을 효과적으로 지원합니다.
+    agent = create_tool_calling_agent(llm, curator_tools, prompt)
     
     # 3. 메모리 생성
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
